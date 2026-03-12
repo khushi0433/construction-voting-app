@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { HomeLinks } from "@/components/home-links";
 
 export default function HomePage() {
   return (
@@ -8,11 +8,7 @@ export default function HomePage() {
         <p className="mt-3 text-slate-600">
           Starter project for a six-partner construction decision system with scoring, ballot locking, audit trail, and exports.
         </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link className="rounded-xl bg-slate-900 px-4 py-2 text-white no-underline" href="/login">Go to login</Link>
-          <Link className="rounded-xl border px-4 py-2 no-underline" href="/admin">Admin dashboard</Link>
-          <Link className="rounded-xl border px-4 py-2 no-underline" href="/partner">Partner dashboard</Link>
-        </div>
+        <HomeLinks />
       </div>
     </main>
   );
