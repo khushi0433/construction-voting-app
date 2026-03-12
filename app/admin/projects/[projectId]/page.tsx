@@ -74,15 +74,13 @@ export default function ProjectEditorPage() {
         ? Math.max(...segments.map((s) => s.sort_order)) + 1
         : 1;
 
-    const { data: segment, error } = await supabase
+    const { error } = await supabase
       .from("project_segments")
       .insert({
         project_id: projectId,
         title: newSegmentTitle.trim(),
         sort_order: maxOrder,
-      })
-      .select()
-      .single();
+      });
 
     if (error) {
       console.error(error);
@@ -95,35 +93,8 @@ export default function ProjectEditorPage() {
     loadSegments();
   };
 
-  const handleAddOption = async (segmentId: string) => {
-    const segment = segments.find((s) => s.id === segmentId);
-    const options = segment?.segment_options || [];
-    if (options.length >= 3) {
-      alert("Each segment can have at most 3 options.");
-      return;
-    }
 
-    const sortOrder = options.length + 1;
-
-    const { error } = await supabase.from("segment_options").insert({
-      segment_id: segmentId,
-      label: `Option ${sortOrder}`,
-      sort_order: sortOrder,
-    });
-
-    if (error) {
-      console.error(error);
-      alert(error.message);
-      return;
-    }
-
-    loadSegments();
-  };
-
-  const handleUpdateOption = async (
-    optionId: string,
-    label: string
-  ) => {
+  const handleUpdateOption = async (optionId: string, label: string) => {
     const { error } = await supabase
       .from("segment_options")
       .update({ label })
@@ -155,20 +126,22 @@ export default function ProjectEditorPage() {
     loadSegments();
   };
 
-  const handleUpdateStatus = async (status: string) => {
-    const { error } = await supabase
-      .from("projects")
-      .update({ status })
-      .eq("id", projectId);
+ const handleUpdateStatus = async (status: string) => {
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ status })
+    .eq("id", projectId)
+    .select()
+    .single();
 
-    if (error) {
-      console.error(error);
-      alert(error.message);
-      return;
-    }
+  if (error) {
+    console.error(error);
+    alert(error.message);
+    return;
+  }
 
-    loadProject();
-  };
+  setProject(data);
+};
 
   if (!project) {
     return (
@@ -180,6 +153,7 @@ export default function ProjectEditorPage() {
 
   return (
     <main className="mx-auto max-w-5xl p-10">
+
       <div className="mb-6 flex items-center gap-4">
         <Link
           href="/admin"
@@ -194,137 +168,35 @@ export default function ProjectEditorPage() {
 
       {/* Configure voting */}
       <div className="mt-8 rounded-2xl border p-6">
-        <h2 className="text-xl font-semibold">Configure Voting</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Change project status to control when partners can vote.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            onClick={() => handleUpdateStatus("draft")}
-            className={`rounded-xl px-4 py-2 ${
-              project.status === "draft"
-                ? "bg-slate-900 text-white"
-                : "border bg-white"
-            }`}
-          >
-            Draft
-          </button>
-          <button
-            onClick={() => handleUpdateStatus("open")}
-            className={`rounded-xl px-4 py-2 ${
-              project.status === "open"
-                ? "bg-slate-900 text-white"
-                : "border bg-white"
-            }`}
-          >
-            Open
-          </button>
-          <button
-            onClick={() => handleUpdateStatus("closed")}
-            className={`rounded-xl px-4 py-2 ${
-              project.status === "closed"
-                ? "bg-slate-900 text-white"
-                : "border bg-white"
-            }`}
-          >
-            Closed
-          </button>
-        </div>
-      </div>
 
-      {/* Segments */}
-      <div className="mt-8 rounded-2xl border p-6">
-        <h2 className="text-xl font-semibold">Segments</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Add segments and options for partners to vote on. Each segment should
-          have 3 options.
-        </p>
+  <div className="flex items-center justify-between">
 
-        <div className="mt-4 space-y-4">
-          {segments.map((segment) => (
-            <div
-              key={segment.id}
-              className="rounded-xl border bg-slate-50 p-4"
+    <h2 className="text-xl font-semibold">Configure Voting</h2>
+
+    <Link
+      href={`/partner/project/${projectId}`}
+      className="rounded-xl border px-4 py-2 hover:bg-slate-50"
+    >
+      Preview Voting
+    </Link>
+
+  </div>
+
+  <div className="mt-4 flex gap-2">
+          {["draft", "open", "closed"].map((status) => (
+            <button
+              key={status}
+              onClick={() => handleUpdateStatus(status)}
+              className={`rounded-xl px-4 py-2 ${
+                project.status === status
+                  ? "bg-slate-900 text-white"
+                  : "border bg-white"
+              }`}
             >
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">{segment.title}</h3>
-                <button
-                  onClick={() => handleDeleteSegment(segment.id)}
-                  className="text-sm text-red-600 hover:underline"
-                >
-                  Delete
-                </button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {(segment.segment_options || [])
-                  .sort((a, b) => a.sort_order - b.sort_order)
-                  .map((opt) => (
-                    <div
-                      key={opt.id}
-                      className="flex items-center gap-2"
-                    >
-                      <input
-                        type="text"
-                        className="flex-1 rounded-lg border bg-white px-3 py-1.5 text-sm"
-                        defaultValue={opt.label}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          if (v && v !== opt.label) {
-                            handleUpdateOption(opt.id, v);
-                          }
-                        }}
-                      />
-                    </div>
-                  ))}
-                {(segment.segment_options || []).length < 3 && (
-                  <button
-                    onClick={() => handleAddOption(segment.id)}
-                    className="text-sm text-slate-600 underline hover:text-slate-900"
-                  >
-                    + Add option
-                  </button>
-                )}
-              </div>
-            </div>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
           ))}
         </div>
-
-        {addingSegment ? (
-          <div className="mt-4 flex gap-2">
-            <input
-              type="text"
-              placeholder="Segment title"
-              className="flex-1 rounded-xl border px-4 py-2"
-              value={newSegmentTitle}
-              onChange={(e) => setNewSegmentTitle(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Enter" ? handleAddSegment() : null
-              }
-            />
-            <button
-              onClick={handleAddSegment}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-white"
-            >
-              Add
-            </button>
-            <button
-              onClick={() => {
-                setAddingSegment(false);
-                setNewSegmentTitle("");
-              }}
-              className="rounded-xl border px-4 py-2"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setAddingSegment(true)}
-            className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-white"
-          >
-            Add Segment
-          </button>
-        )}
       </div>
     </main>
   );

@@ -9,16 +9,38 @@ type VotingBallotProps = {
 
 export function VotingBallot({ projectId }: VotingBallotProps) {
   const [scores, setScores] = useState<Record<string, number | "">>({});
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const saveDraft = () => {
     console.log("Saving draft for project:", projectId);
     console.log(scores);
   };
 
-  const lockVotes = () => {
+  const lockVotes = async () => {
+  setLoading(true);
+  setMessage(null);
+  setError(null);
+
+  try {
     console.log("Locking votes for project:", projectId);
     console.log(scores);
-  };
+
+    if (Object.keys(scores).length === 0) {
+      throw new Error("You must score at least one option.");
+    }
+
+    // simulate saving (replace later with Supabase)
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    setMessage("Your votes have been locked successfully.");
+  } catch (err: any) {
+    setError(err.message || "Something went wrong.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -62,6 +84,18 @@ export function VotingBallot({ projectId }: VotingBallotProps) {
         </div>
       ))}
 
+      {message && (
+  <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-green-700">
+    {message}
+  </div>
+)}
+
+{error && (
+  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700">
+    {error}
+  </div>
+)}
+
       <div className="flex flex-wrap gap-3">
         <button
           onClick={saveDraft}
@@ -71,11 +105,13 @@ export function VotingBallot({ projectId }: VotingBallotProps) {
         </button>
 
         <button
-          onClick={lockVotes}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-white"
-        >
-          Lock my votes
-        </button>
+  type="button"
+  onClick={lockVotes}
+  disabled={loading}
+  className="rounded-xl bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
+>
+  {loading ? "Locking..." : "Lock my votes"}
+</button>
       </div>
     </div>
   );
