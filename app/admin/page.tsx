@@ -7,23 +7,40 @@ import Link from "next/link";
 export default function AdminDashboardPage() {
   const [projects, setProjects] = useState<any[]>([]);
 
+  const loadProjects = async () => {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setProjects(data || []);
+  };
+
   useEffect(() => {
-    const loadProjects = async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      setProjects(data || []);
-    };
-
     loadProjects();
   }, []);
+
+  const handleDeleteProject = async (projectId: string, projectTitle: string) => {
+    if (!confirm(`Delete project "${projectTitle}"? This cannot be undone.`)) return;
+
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", projectId);
+
+    if (error) {
+      console.error(error);
+      alert(error.message);
+      return;
+    }
+
+    loadProjects();
+  };
 
   return (
     <main className="mx-auto max-w-6xl p-6 md:p-10">
@@ -71,31 +88,35 @@ export default function AdminDashboardPage() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <Link
-    href={`/admin/projects/${project.id}`}
-    className="rounded-xl border px-3 py-2 no-underline"
-  >
-    Open
-  </Link>
+                href={`/admin/projects/${project.id}`}
+                className="rounded-xl border px-3 py-2 no-underline"
+              >
+                Open
+              </Link>
               <Link
                 href={`/admin/projects/${project.id}/results`}
                 className="rounded-xl border px-3 py-2 no-underline"
               >
                 Results
               </Link>
-
               <Link
                 href={`/admin/projects/${project.id}/audit`}
                 className="rounded-xl border px-3 py-2 no-underline"
               >
                 Audit
               </Link>
-
               <Link
                 href="/admin/partners"
                 className="rounded-xl border px-3 py-2 no-underline"
               >
                 Partners
               </Link>
+              <button
+                onClick={() => handleDeleteProject(project.id, project.title)}
+                className="rounded-xl border border-red-200 px-3 py-2 text-red-600 hover:bg-red-50"
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}
